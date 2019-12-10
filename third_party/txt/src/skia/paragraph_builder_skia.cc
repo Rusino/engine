@@ -51,6 +51,8 @@ skt::ParagraphStyle TxtToSkia(const ParagraphStyle& txt) {
   text_style.setHeight(SkDoubleToScalar(txt.height));
   text_style.setFontFamilies({SkString(txt.font_family.c_str())});
   text_style.setLocale(SkString(txt.locale.c_str()));
+  text_style.setHeightOverride(txt.has_height_override);
+  text_style.setHeight(txt.height);
   skia.setTextStyle(text_style);
 
   skt::StrutStyle strut_style;
@@ -102,6 +104,7 @@ skt::TextStyle TxtToSkia(const TextStyle& txt) {
   skia.setFontSize(SkDoubleToScalar(txt.font_size));
   skia.setLetterSpacing(SkDoubleToScalar(txt.letter_spacing));
   skia.setWordSpacing(SkDoubleToScalar(txt.word_spacing));
+  skia.setHeightOverride(txt.has_height_override);
   skia.setHeight(SkDoubleToScalar(txt.height));
 
   skia.setLocale(SkString(txt.locale.c_str()));
