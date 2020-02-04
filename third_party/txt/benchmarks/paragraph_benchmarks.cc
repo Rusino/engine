@@ -34,7 +34,25 @@
 
 namespace txt {
 
+static std::unique_ptr<SkCanvas> canvas = nullptr;
+static std::unique_ptr<SkBitmap> bitmap = nullptr;
+static std::shared_ptr<FontCollection> fontCollection = nullptr;
+
+static void initialize() {
+  if (fontCollection == nullptr) {
+    fontCollection = GetTestFontCollection();
+  }
+  if (canvas == nullptr) {
+    bitmap = std::make_unique<SkBitmap>();
+    bitmap->allocN32Pixels(1000, 1000);
+    canvas = std::make_unique<SkCanvas>(*bitmap);
+    canvas->clear(SK_ColorWHITE);
+  }
+}
+
 static void BM_ParagraphShortLayout(benchmark::State& state) {
+  initialize();
+
   const char* text = "Hello World";
   auto icu_text = icu::UnicodeString::fromUTF8(text);
   std::u16string u16_text(icu_text.getBuffer(),
@@ -45,7 +63,7 @@ static void BM_ParagraphShortLayout(benchmark::State& state) {
   txt::TextStyle text_style;
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
@@ -59,6 +77,8 @@ static void BM_ParagraphShortLayout(benchmark::State& state) {
 BENCHMARK(BM_ParagraphShortLayout);
 
 static void BM_ParagraphLongLayout(benchmark::State& state) {
+  initialize();
+
   const char* text =
       "This is a very long sentence to test if the text will properly wrap "
       "around and go to the next line. Sometimes, short sentence. Longer "
@@ -87,7 +107,7 @@ static void BM_ParagraphLongLayout(benchmark::State& state) {
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
 
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
@@ -101,6 +121,8 @@ static void BM_ParagraphLongLayout(benchmark::State& state) {
 BENCHMARK(BM_ParagraphLongLayout);
 
 static void BM_ParagraphJustifyLayout(benchmark::State& state) {
+  initialize();
+
   const char* text =
       "This is a very long sentence to test if the text will properly wrap "
       "around and go to the next line. Sometimes, short sentence. Longer "
@@ -130,7 +152,7 @@ static void BM_ParagraphJustifyLayout(benchmark::State& state) {
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
 
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
@@ -144,6 +166,8 @@ static void BM_ParagraphJustifyLayout(benchmark::State& state) {
 BENCHMARK(BM_ParagraphJustifyLayout);
 
 static void BM_ParagraphManyStylesLayout(benchmark::State& state) {
+  initialize();
+
   const char* text = "-";
   auto icu_text = icu::UnicodeString::fromUTF8(text);
   std::u16string u16_text(icu_text.getBuffer(),
@@ -154,7 +178,7 @@ static void BM_ParagraphManyStylesLayout(benchmark::State& state) {
   txt::TextStyle text_style;
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
   for (int i = 0; i < 1000; ++i) {
     builder.PushStyle(text_style);
     builder.AddText(u16_text);
@@ -168,6 +192,8 @@ static void BM_ParagraphManyStylesLayout(benchmark::State& state) {
 BENCHMARK(BM_ParagraphManyStylesLayout);
 
 static void BM_ParagraphTextBigO(benchmark::State& state) {
+  initialize();
+
   std::vector<uint16_t> text;
   for (uint16_t i = 0; i < state.range(0); ++i) {
     text.push_back(i % 5 == 0 ? ' ' : i);
@@ -181,7 +207,7 @@ static void BM_ParagraphTextBigO(benchmark::State& state) {
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
 
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
@@ -199,6 +225,8 @@ BENCHMARK(BM_ParagraphTextBigO)
     ->Complexity(benchmark::oN);
 
 static void BM_ParagraphStylesBigO(benchmark::State& state) {
+  initialize();
+
   const char* text = "vry shrt ";
   auto icu_text = icu::UnicodeString::fromUTF8(text);
   std::u16string u16_text(icu_text.getBuffer(),
@@ -210,7 +238,7 @@ static void BM_ParagraphStylesBigO(benchmark::State& state) {
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
 
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   for (int i = 0; i < state.range(0); ++i) {
     builder.PushStyle(text_style);
@@ -229,7 +257,9 @@ BENCHMARK(BM_ParagraphStylesBigO)
     ->Complexity(benchmark::oN);
 
 static void BM_ParagraphPaintSimple(benchmark::State& state) {
-  const char* text = "Hello world! This is a simple sentence to test drawing.";
+  initialize();
+
+  const char* text = "This is a simple sentence to test drawing.";
   auto icu_text = icu::UnicodeString::fromUTF8(text);
   std::u16string u16_text(icu_text.getBuffer(),
                           icu_text.getBuffer() + icu_text.length());
@@ -239,16 +269,12 @@ static void BM_ParagraphPaintSimple(benchmark::State& state) {
   txt::TextStyle text_style;
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
   auto paragraph = BuildParagraph(builder);
   paragraph->Layout(300);
 
-  std::unique_ptr<SkBitmap> bitmap = std::make_unique<SkBitmap>();
-  bitmap->allocN32Pixels(1000, 1000);
-  std::unique_ptr<SkCanvas> canvas = std::make_unique<SkCanvas>(*bitmap);
-  canvas->clear(SK_ColorWHITE);
   int offset = 0;
   while (state.KeepRunning()) {
     paragraph->Paint(canvas.get(), offset % 700, 10);
@@ -258,6 +284,8 @@ static void BM_ParagraphPaintSimple(benchmark::State& state) {
 BENCHMARK(BM_ParagraphPaintSimple);
 
 static void BM_ParagraphPaintLarge(benchmark::State& state) {
+  initialize();
+
   const char* text =
       "Hello world! This is a simple sentence to test drawing. Hello world! "
       "This is a simple sentence to test drawing. Hello world! This is a "
@@ -286,16 +314,12 @@ static void BM_ParagraphPaintLarge(benchmark::State& state) {
   txt::TextStyle text_style;
   text_style.font_families = std::vector<std::string>(1, "Roboto");
   text_style.color = SK_ColorBLACK;
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
   auto paragraph = BuildParagraph(builder);
   paragraph->Layout(300);
 
-  std::unique_ptr<SkBitmap> bitmap = std::make_unique<SkBitmap>();
-  bitmap->allocN32Pixels(1000, 1000);
-  std::unique_ptr<SkCanvas> canvas = std::make_unique<SkCanvas>(*bitmap);
-  canvas->clear(SK_ColorWHITE);
   int offset = 0;
   while (state.KeepRunning()) {
     paragraph->Paint(canvas.get(), offset % 700, 10);
@@ -305,6 +329,8 @@ static void BM_ParagraphPaintLarge(benchmark::State& state) {
 BENCHMARK(BM_ParagraphPaintLarge);
 
 static void BM_ParagraphPaintDecoration(benchmark::State& state) {
+  initialize();
+
   const char* text =
       "Hello world! This is a simple sentence to test drawing. Hello world! "
       "This is a simple sentence to test drawing.";
@@ -322,7 +348,7 @@ static void BM_ParagraphPaintDecoration(benchmark::State& state) {
   text_style.decoration_style = TextDecorationStyle(kSolid);
   text_style.color = SK_ColorBLACK;
 
-  txt::ParagraphBuilderTxt builder(paragraph_style, GetTestFontCollection());
+  txt::ParagraphBuilderTxt builder(paragraph_style, fontCollection);
 
   builder.PushStyle(text_style);
   builder.AddText(u16_text);
@@ -338,10 +364,6 @@ static void BM_ParagraphPaintDecoration(benchmark::State& state) {
   auto paragraph = BuildParagraph(builder);
   paragraph->Layout(300);
 
-  std::unique_ptr<SkBitmap> bitmap = std::make_unique<SkBitmap>();
-  bitmap->allocN32Pixels(1000, 1000);
-  std::unique_ptr<SkCanvas> canvas = std::make_unique<SkCanvas>(*bitmap);
-  canvas->clear(SK_ColorWHITE);
   int offset = 0;
   while (state.KeepRunning()) {
     paragraph->Paint(canvas.get(), offset % 700, 10);
